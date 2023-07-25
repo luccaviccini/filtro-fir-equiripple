@@ -24,4 +24,19 @@ plt.xlabel('Tempo [s]')
 plt.ylabel('Amplitude')
 plt.legend()
 plt.grid(True)
+
+
+
+# Plotando espectro do sinal ruidoso
+plt.figure()
+f = np.fft.fftshift(np.fft.fftfreq(N, 1 / fs))
+X = np.fft.fftshift(np.fft.fft(sinal_ruidoso))
+plt.plot(f, np.abs(X), linewidth=1.5)
+plt.grid(True)
+plt.title('Espectro do sinal ruidoso')
+plt.xlabel('Frequência (Hz)')
+plt.ylabel('Magnitude')
+plt.xlim([-fs / 2, fs / 2])
+plt.tight_layout()
+plt.xticks([-fs / 2, -250, 0, 250, fs / 2], ['500', '-250', '0', '250', '500'])
 plt.show()
