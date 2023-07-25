@@ -9,7 +9,12 @@ N = 10000  # Número de pontos do sinal
 n = np.arange(N) / fs
 
 sinal = 50 * n * np.exp(-15 * n)
-ruido = 0.04 * np.random.randn(len(sinal))
+ruido_branco = 0.04 * np.random.randn(len(sinal))
+# Frequência da portadora para a modulação
+f_portadora = 3500  # 2.5kHz
+portadora = np.cos(2 * np.pi * f_portadora * n)
+ruido = ruido_branco * portadora
+
 sinal_ruidoso = sinal + ruido
 
 # Plotando os sinais
@@ -39,7 +44,7 @@ plt.xlabel('Frequência (Hz)')
 plt.ylabel('Magnitude')
 plt.xlim([-fs / 2, fs / 2])
 plt.tight_layout()
-plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], ['10000', '-5000', '0', '5000', '10000'])
+plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], [f'{-fs / 2}', f'{-fs / 4}', '0', f'{fs / 2}', f'{-fs / 2}'])
 
 
 
@@ -48,7 +53,7 @@ plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], ['10000', '-5000', '0', '5000', 
 # Tipos de filtro:
 # passa-baixa -> tipo == 1, passa-faixa -> tipo == 2, passa-alta -> tipo == 3
 
-banda_transicao = 200   # Banda de transição do filtro
+banda_transicao = 100   # Banda de transição do filtro
 
 tipo_filtro = 1
 
@@ -70,6 +75,7 @@ elif tipo_filtro == 3:
   magnitude = [0, 1]
   
 ordem_filtro = 100
+
 equiripple = sp.signal.remez(ordem_filtro, frequencias, magnitude, fs=fs)
 # Resposta em frequência do filtro
 # Resposta em frequência do filtro
@@ -85,6 +91,7 @@ plt.xlabel('Frequência (Hz)')
 plt.ylabel('Magnitude ')
 plt.grid()
 plt.tight_layout()
+
 plt.subplot(2, 1, 2)
 plt.plot(w, 20 * np.log10(np.abs(H)), linewidth=1.5, label=f"Ordem = {ordem_filtro}")
 plt.title(f'Resposta em Frequência do Filtro Equiripple de Ordem {ordem_filtro}')
@@ -93,4 +100,29 @@ plt.ylabel('Magnitude (dB)')
 plt.grid()
 plt.tight_layout()
 
+# Aplicando o filtro ao sinal ruidoso
+sinal_filtrado = sp.signal.lfilter(equiripple, [1], sinal_ruidoso)
+
+# Plotando o sinal filtrado
+plt.figure(figsize=(10, 6))
+plt.plot(n, sinal_ruidoso, label='Sinal Ruidoso', linewidth=0.7)
+plt.plot(n, sinal_filtrado, label='Sinal Filtrado', linewidth=1)
+plt.title('Sinal Filtrado')
+plt.xlabel('Tempo [s]')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+
+
+# Plotando o espectro do sinal filtrado
+X_filtered = np.fft.fftshift(np.fft.fft(sinal_filtrado))
+plt.figure()
+plt.plot(f, np.abs(X_filtered), linewidth=1.5)
+plt.title('Espectro do sinal filtrado')
+plt.xlabel('Frequência (Hz)')
+plt.ylabel('Magnitude')
+plt.xlim([-fs / 2, fs / 2])
+plt.tight_layout()
+plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], ['10000', '-5000', '0', '5000', '10000'])
+plt.grid(True)
 plt.show()
