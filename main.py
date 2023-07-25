@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import scipy as sp
 
 # Parâmetros
-fs = 1000  # Frequência de Amostragem
-N = 500  # Número de pontos do sinal
+fs = 20000  # Frequência de Amostragem
+fc = 2000    # Frequência de corte
+N = 10000  # Número de pontos do sinal
 n = np.arange(N) / fs
 
 sinal = 50 * n * np.exp(-15 * n)
@@ -38,5 +39,5 @@ plt.xlabel('Frequência (Hz)')
 plt.ylabel('Magnitude')
 plt.xlim([-fs / 2, fs / 2])
 plt.tight_layout()
-plt.xticks([-fs / 2, -250, 0, 250, fs / 2], ['500', '-250', '0', '250', '500'])
+plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], ['10000', '-5000', '0', '5000', '10000'])
 plt.show()
