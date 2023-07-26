@@ -1,128 +1,115 @@
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 
-# Parâmetros
-fs = 20000  # Frequência de Amostragem
-fc = 2000    # Frequência de corte
-N = 10000  # Número de pontos do sinal
-n = np.arange(N) / fs
+# Cria um sinal de teste com várias componentes de frequência
+fs = 100  # Frequência de amostragem original
+t = np.arange(0, 5, 1/fs)  # Agora o sinal tem duração de 10 segundos
+sinal = np.sin(2*np.pi*5*t) + 0.8*np.sin(2*np.pi*15*t) + 0.5*np.sin(2*np.pi*30*t) + 0.2*np.sin(2*np.pi*40*t)
+# ruido_branco =  0.3 * np.random.randn(len(sinal))
+# f_portadora = 3500
+# portadora = 0.4*np.cos(2 * np.pi * f_portadora * t)
+# ruido = ruido_branco * portadora
+# sinal += ruido
 
-sinal = 50 * n * np.exp(-15 * n)
-ruido_branco = 0.04 * np.random.randn(len(sinal))
-# Frequência da portadora para a modulação
-f_portadora = 3500  # 2.5kHz
-portadora = np.cos(2 * np.pi * f_portadora * n)
-ruido = ruido_branco * portadora
+# Projeta um filtro equiripple para remover componentes acima de 8 Hz
+N = 100  # Ordem do filtro
+frequencias = [0, 8, 10, fs/2]
+ganhos = [1, 0]
+filtro = sp.signal.remez(N, frequencias, ganhos, fs=fs)
 
-sinal_ruidoso = sinal + ruido
+# Aplica o filtro ao sinal
+sinal_filtrado = sp.signal.lfilter(filtro, 1, sinal)
 
-# Plotando os sinais
-plt.figure(figsize=(10, 6))
+# Resposta em frequência do filtro
+freqs, response = sp.signal.freqz(filtro, worN=8000)
+freqs = freqs * fs / (2*np.pi)  # Converte para Hz
 
-plt.plot(n, sinal, label='Sinal Original')
-plt.plot(n, ruido, label='Ruído', alpha=0.7)
-plt.plot(n, sinal_ruidoso, label='Sinal Ruidoso', linewidth=0.7)
+ordens = [10, 30, 50, 70, 80, 100, 120, 200]
 
-# Adicionando título e legendas
-plt.title('Sinal, Ruído e Sinal Ruidoso')
+fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+
+for i in range(4):
+  # Selecione o subplot atual
+  ax = axs[i // 2, i % 2]
+
+  # Loop através das duas ordens no par atual
+  for ordem in ordens[i*2:i*2+2]:
+    equiripple = sp.signal.remez(ordem, frequencias, ganhos, fs=fs)
+    w, H = sp.signal.freqz(equiripple, [1], worN=8000, fs=fs)
+    ax.plot(w, abs(H), linewidth=1.5, label=f"Ordem = {ordem}")
+
+  # Configuração do subplot
+  ax.set_title(
+      f'Resposta em Frequência das Ordens {ordens[i*2]} e {ordens[i*2+1]}')
+  ax.set_xlabel('Frequência [Hz]')
+  ax.set_ylabel('Magnitude')
+  ax.grid(True)
+  ax.legend()
+
+plt.subplots_adjust(hspace=0.3)
+  
+
+# Plota o sinal no domínio do tempo
+plt.figure(figsize=(10, 8))
+
+plt.subplot(2, 1, 1)
+plt.plot(t, sinal)
+plt.title('Sinal Original')
 plt.xlabel('Tempo [s]')
 plt.ylabel('Amplitude')
-plt.legend()
 plt.grid(True)
 
-
-
-# Plotando espectro do sinal ruidoso
-plt.figure()
-f = np.fft.fftshift(np.fft.fftfreq(N, 1 / fs))
-X = np.fft.fftshift(np.fft.fft(sinal_ruidoso))
-plt.plot(f, np.abs(X), linewidth=1.5)
-plt.grid(True)
-plt.title('Espectro do sinal ruidoso')
-plt.xlabel('Frequência (Hz)')
-plt.ylabel('Magnitude')
-plt.xlim([-fs / 2, fs / 2])
-plt.tight_layout()
-plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], [f'{-fs / 2}', f'{-fs / 4}', '0', f'{fs / 2}', f'{-fs / 2}'])
-
-
-
-
-# Características do filtro
-# Tipos de filtro:
-# passa-baixa -> tipo == 1, passa-faixa -> tipo == 2, passa-alta -> tipo == 3
-
-banda_transicao = 100   # Banda de transição do filtro
-
-tipo_filtro = 1
-
-if tipo_filtro == 1:
-  banda_passagem = [0, fc]
-  frequencias = [banda_passagem[0], banda_passagem[1],
-                 banda_passagem[1] + banda_transicao, fs / 2]
-  magnitude = [1, 0]
-
-elif tipo_filtro == 2:
-  banda_passagem = [6000, 8000]
-  frequencias = [0, (banda_passagem[0] - banda_transicao), banda_passagem[0],
-                 banda_passagem[1], (banda_passagem[1] + banda_transicao), fs / 2]
-  magnitude = [0, 1, 0]
-elif tipo_filtro == 3:
-  banda_passagem = [fc, fs / 2]
-  frequencias = [0, banda_passagem[0] -
-                 banda_transicao, banda_passagem[0], fs / 2]
-  magnitude = [0, 1]
-  
-ordem_filtro = 100
-
-equiripple = sp.signal.remez(ordem_filtro, frequencias, magnitude, fs=fs)
-# Resposta em frequência do filtro
-# Resposta em frequência do filtro
-w, H = sp.signal.freqz(equiripple, [1], worN=fs//2, fs=fs)
-
-
-# Plotando a resposta em frequência do filtro
-plt.figure()
-plt.subplot(2, 1, 1)
-plt.plot(w, abs(H), linewidth=1.5, label=f"Ordem = {ordem_filtro}")
-plt.title(f'Resposta em Frequência do Filtro Equiripple de Ordem {ordem_filtro}')
-plt.xlabel('Frequência (Hz)')
-plt.ylabel('Magnitude ')
-plt.grid()
-plt.tight_layout()
-
+# Plota o sinal filtrado no domínio do tempo
 plt.subplot(2, 1, 2)
-plt.plot(w, 20 * np.log10(np.abs(H)), linewidth=1.5, label=f"Ordem = {ordem_filtro}")
-plt.title(f'Resposta em Frequência do Filtro Equiripple de Ordem {ordem_filtro}')
-plt.xlabel('Frequência (Hz)')
-plt.ylabel('Magnitude (dB)')
-plt.grid()
-plt.tight_layout()
-
-# Aplicando o filtro ao sinal ruidoso
-sinal_filtrado = sp.signal.lfilter(equiripple, [1], sinal_ruidoso)
-
-# Plotando o sinal filtrado
-plt.figure(figsize=(10, 6))
-plt.plot(n, sinal_ruidoso, label='Sinal Ruidoso', linewidth=0.7)
-plt.plot(n, sinal_filtrado, label='Sinal Filtrado', linewidth=1)
+plt.plot(t, sinal_filtrado)
 plt.title('Sinal Filtrado')
 plt.xlabel('Tempo [s]')
 plt.ylabel('Amplitude')
+plt.grid(True)
+plt.subplots_adjust(hspace=0.3)
+
+
+# Diagrama polos e zeros
+equiripple = sp.signal.remez(N, frequencias, ganhos, fs=fs)
+zeros, poles, gain = sp.signal.tf2zpk(equiripple, [1])
+plt.figure()
+plt.scatter(np.real(zeros), np.imag(zeros),
+            marker='o', color='b', label='Zeros')
+plt.scatter(np.real(poles), np.imag(poles),
+            marker='x', color='r', label='Polos')
+plt.title(
+    f'Diagrama de Polos e Zeros (Ordem do filtro igual a {N})')
+plt.xlabel('Parte Real')
+plt.ylabel('Parte Imaginária')
 plt.legend()
 plt.grid(True)
+plt.axis('equal')
 
 
-# Plotando o espectro do sinal filtrado
-X_filtered = np.fft.fftshift(np.fft.fft(sinal_filtrado))
-plt.figure()
-plt.plot(f, np.abs(X_filtered), linewidth=1.5)
-plt.title('Espectro do sinal filtrado')
-plt.xlabel('Frequência (Hz)')
-plt.ylabel('Magnitude')
-plt.xlim([-fs / 2, fs / 2])
+
+def plot_fft(sinal, fs, title, subplot):
+    N = len(sinal)
+    T = 1.0 / fs
+    yf = np.fft.fft(sinal)
+    xf = np.linspace(0.0, 1.0/(2.0*T), N//2)
+    subplot.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
+    subplot.set_title(title)
+    subplot.set_xlabel('Frequência [Hz]')
+    subplot.set_ylabel('Magnitude')
+    subplot.grid(True)
+
+plt.figure(figsize=(10, 8))
+
+# Subplot 1: FFT do Sinal Original
+ax1 = plt.subplot(2, 1, 1)
+plot_fft(sinal, fs, 'FFT do Sinal Original', ax1)
+
+# Subplot 2: FFT do Sinal Filtrado
+ax2 = plt.subplot(2, 1, 2)
+plot_fft(sinal_filtrado, fs, 'FFT do Sinal Filtrado', ax2)
+
 plt.tight_layout()
-plt.xticks([-fs / 2, -fs / 4, 0, fs/4, fs / 2], ['10000', '-5000', '0', '5000', '10000'])
-plt.grid(True)
 plt.show()
